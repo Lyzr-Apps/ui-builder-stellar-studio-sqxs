@@ -12,12 +12,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   RiDashboardLine, RiBarChartLine, RiFileTextLine, RiTeamLine, RiSettingsLine,
   RiUserLine, RiMoneyDollarCircleLine, RiFlashlightLine, RiPercentLine,
   RiSearchLine, RiNotification3Line, RiAddLine, RiLineChartLine, RiGroupLine,
   RiArrowUpLine, RiArrowDownLine, RiSendPlane2Fill, RiMenuLine,
-  RiCloseLine, RiRobot2Line, RiArrowRightSLine
+  RiCloseLine, RiRobot2Line, RiArrowRightSLine,
+  RiErrorWarningLine, RiFeedbackLine, RiCheckLine, RiLoader4Line
 } from 'react-icons/ri'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -501,6 +503,198 @@ function AIAssistantPanel({ open, onClose, sessionId }: { open: boolean; onClose
   )
 }
 
+function IssueFeedbackForm() {
+  const [issueSummary, setIssueSummary] = useState('')
+  const [feedback, setFeedback] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [agentResponse, setAgentResponse] = useState<{
+    response: string
+    insights: string[]
+    recommendation: string
+  } | null>(null)
+
+  const handleSubmit = async () => {
+    if (!issueSummary.trim() && !feedback.trim()) return
+    if (loading) return
+
+    setLoading(true)
+    setError(null)
+    setAgentResponse(null)
+    setSubmitted(false)
+
+    const combinedMessage = `Issue Summary: ${issueSummary.trim()}\n\nFeedback: ${feedback.trim()}`
+
+    try {
+      const result: AIAgentResponse = await callAIAgent(combinedMessage, AGENT_ID)
+
+      if (result.success && result?.response?.result) {
+        const agentData = result.response.result as AgentResponseData
+        const responseText = agentData?.response || agentData?.text || agentData?.message || result?.response?.message || 'Your submission has been processed.'
+        const insights = Array.isArray(agentData?.insights) ? agentData.insights : []
+        const recommendation = agentData?.recommendation || ''
+
+        setAgentResponse({
+          response: typeof responseText === 'string' ? responseText : JSON.stringify(responseText),
+          insights,
+          recommendation,
+        })
+        setSubmitted(true)
+      } else {
+        setError(result?.response?.message || result?.error || 'Failed to process submission.')
+      }
+    } catch (err) {
+      setError('Failed to reach the assistant. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReset = () => {
+    setIssueSummary('')
+    setFeedback('')
+    setAgentResponse(null)
+    setSubmitted(false)
+    setError(null)
+  }
+
+  return (
+    <Card className="rounded-none border border-border shadow-sm">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-secondary rounded-none">
+            <RiErrorWarningLine className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="font-serif text-base font-medium tracking-[0.08em]">
+              Issue Summary & Feedback
+            </CardTitle>
+            <p className="text-xs font-light text-muted-foreground mt-1 tracking-[0.03em]">
+              Submit an issue or provide feedback — AI will analyze and respond
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {/* Issue Summary Field */}
+        <div className="space-y-2">
+          <Label htmlFor="issue-summary" className="text-xs font-normal tracking-[0.08em] uppercase text-muted-foreground">
+            Issue Summary
+          </Label>
+          <Textarea
+            id="issue-summary"
+            placeholder="Describe the issue briefly..."
+            value={issueSummary}
+            onChange={(e) => setIssueSummary(e.target.value)}
+            disabled={loading}
+            className="rounded-none text-sm font-light min-h-[100px] resize-none leading-relaxed border-border focus:ring-primary"
+          />
+        </div>
+
+        {/* Feedback Field */}
+        <div className="space-y-2">
+          <Label htmlFor="feedback" className="text-xs font-normal tracking-[0.08em] uppercase text-muted-foreground flex items-center gap-2">
+            <RiFeedbackLine className="h-3.5 w-3.5" />
+            Feedback
+          </Label>
+          <Textarea
+            id="feedback"
+            placeholder="Share your feedback, suggestions, or additional context..."
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            disabled={loading}
+            className="rounded-none text-sm font-light min-h-[100px] resize-none leading-relaxed border-border focus:ring-primary"
+          />
+        </div>
+
+        {/* Submit / Reset Buttons */}
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || (!issueSummary.trim() && !feedback.trim())}
+            className="rounded-none text-xs font-light tracking-[0.08em] uppercase px-6"
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
+                Analyzing...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <RiSendPlane2Fill className="h-3.5 w-3.5" />
+                Submit
+              </span>
+            )}
+          </Button>
+          {(submitted || issueSummary || feedback) && (
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              disabled={loading}
+              className="rounded-none text-xs font-light tracking-[0.05em]"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 px-4 py-3 rounded-none">
+            <p className="text-xs font-light text-destructive">{error}</p>
+          </div>
+        )}
+
+        {/* Agent Response Display */}
+        {submitted && agentResponse && (
+          <div className="space-y-4 pt-2">
+            <Separator />
+            <div className="flex items-center gap-2 mb-2">
+              <RiCheckLine className="h-4 w-4 text-green-700" />
+              <span className="text-xs font-normal tracking-[0.08em] uppercase text-green-700">AI Analysis</span>
+            </div>
+
+            {/* Main Response */}
+            <div className="bg-secondary px-4 py-4 rounded-none">
+              <div className="text-sm font-light leading-relaxed text-foreground">
+                {renderMarkdown(agentResponse.response)}
+              </div>
+            </div>
+
+            {/* Insights */}
+            {Array.isArray(agentResponse.insights) && agentResponse.insights.length > 0 && (
+              <div className="border border-border px-4 py-4 rounded-none">
+                <p className="text-xs font-normal tracking-[0.08em] uppercase text-muted-foreground mb-3">
+                  Key Insights
+                </p>
+                <ul className="space-y-2">
+                  {agentResponse.insights.map((insight, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-sm font-light leading-relaxed">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                      {insight}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Recommendation */}
+            {agentResponse.recommendation && (
+              <div className="bg-primary/5 border border-primary/20 px-4 py-4 rounded-none">
+                <p className="text-xs font-normal tracking-[0.08em] uppercase text-primary mb-2">
+                  Recommendation
+                </p>
+                <p className="text-sm font-light leading-relaxed">{agentResponse.recommendation}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function AgentInfoBar() {
   return (
     <Card className="rounded-none border border-border shadow-sm">
@@ -563,6 +757,28 @@ export default function Page() {
             </div>
             <div>
               <ActivityFeed showSample={showSample} />
+            </div>
+          </div>
+
+          {/* Issue Summary & Feedback */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <IssueFeedbackForm />
+            </div>
+            <div>
+              <Card className="rounded-none border border-border shadow-sm h-full">
+                <CardContent className="p-6 flex flex-col justify-center h-full">
+                  <div className="text-center space-y-3">
+                    <div className="p-3 bg-secondary rounded-none inline-block mx-auto">
+                      <RiRobot2Line className="h-8 w-8 text-primary" />
+                    </div>
+                    <h4 className="font-serif text-sm font-medium tracking-[0.08em]">AI-Powered Analysis</h4>
+                    <p className="text-xs font-light text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                      Submit an issue summary and feedback. The AI assistant will analyze your input and provide structured insights with actionable recommendations.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
