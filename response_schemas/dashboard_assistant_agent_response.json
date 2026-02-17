@@ -1,0 +1,22 @@
+{
+  "agent_name": "Dashboard Assistant Agent",
+  "agent_id": "699421e064ccde78b22a74e4",
+  "description": "Conversational AI assistant that helps users understand their dashboard metrics, answers questions about displayed data, provides summaries, and offers actionable recommendations based on the visible KPIs and activity feed",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "response": "string",
+    "insights": [
+      "string"
+    ],
+    "recommendation": "string"
+  },
+  "example_response": {
+    "response": "The assistant's response to the user's query about dashboard metrics and data",
+    "insights": [
+      "sample string"
+    ],
+    "recommendation": "An actionable recommendation based on the data analysis"
+  }
+}

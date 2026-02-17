@@ -1,0 +1,17 @@
+{
+  "agent_name": "Dashboard Assistant Agent",
+  "agent_id": "699421e064ccde78b22a74e4",
+  "agent_type": "json",
+  "accessor": "json",
+  "has_module_outputs": false,
+  "response_schema": {
+    "response": "string - The assistant's response to the user's query",
+    "insights": "array of strings - Key insights or data points",
+    "recommendation": "string - Actionable recommendation"
+  },
+  "sample_response": {
+    "response": "Your dashboard shows strong growth...",
+    "insights": ["Revenue increased 12% month-over-month", "Active sessions up 8%"],
+    "recommendation": "Focus on conversion rate optimization to capitalize on the traffic increase."
+  }
+}
